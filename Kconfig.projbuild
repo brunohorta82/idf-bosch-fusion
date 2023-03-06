@@ -1,0 +1,10 @@
+menu "Motion Sensors" 
+    config BMI270_ADDRESS
+        hex
+        prompt "Accelerometer and Magnometer BMI270 Sensor Address"
+        default 0x68
+    config BMM150_ADDRESS
+        hex
+        prompt "Air BMM150 Sensor Address"
+        default 0x32
+endmenu
