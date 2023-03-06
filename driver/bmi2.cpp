@@ -3859,7 +3859,7 @@ int8_t bmi2_map_feat_int(uint8_t type, enum bmi2_hw_int_pin hw_int_pin, struct b
     uint8_t data_array[2] = {0};
 
     /* Structure to define map the interrupts */
-    struct bmi2_map_int map_int = {0};
+    struct bmi2_map_int map_int = {};
 
     /* Null-pointer check */
     rslt = null_ptr_check(dev);

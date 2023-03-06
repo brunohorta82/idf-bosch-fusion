@@ -363,7 +363,7 @@ esp_err_t bmi2Calibrate()
 {
     int8_t rslt;
     uint16_t status = 0;
-    struct bmi2_sens_data bmi270Data = {{0}};
+    struct bmi2_sens_data bmi270Data = {};
     int calibrate{100};
     bmi270Device.delay_us(50000, bmi270Device.intf_ptr);
     rslt = bmi2_get_int_status(&status, &bmi270Device);
