@@ -1,5 +1,7 @@
 
 #include "BoschInterfaceFusion.h"
+#include "freertos/Freertos.h"
+#include "freertos/task.h"
 #include "../driver/bmi2.h"
 #include "../driver/bmi270.h"
 #include "../driver/bmi2_defs.h"
@@ -363,7 +365,7 @@ esp_err_t bmi2Calibrate()
 {
     int8_t rslt;
     uint16_t status = 0;
-    struct bmi2_sens_data bmi270Data = {};
+    struct bmi2_sens_data bmi270Data = {{0}};
     int calibrate{100};
     bmi270Device.delay_us(50000, bmi270Device.intf_ptr);
     rslt = bmi2_get_int_status(&status, &bmi270Device);
@@ -415,8 +417,6 @@ esp_err_t bmi2Init(Motion::MotionFusionSensor *motionSensor)
     bmi270Device.read_write_len = READ_WRITE_LEN;
     bmi270Device.config_file_ptr = NULL;
 
-    bmi2_error_codes_print_result(rslt);
-
     rslt = bmi270_init(&bmi270Device);
     bmi2_error_codes_print_result(rslt);
     if (rslt == BMI2_OK)
@@ -440,7 +440,7 @@ esp_err_t bmi2Init(Motion::MotionFusionSensor *motionSensor)
     config[ACCEL].cfg.acc.range = BMI2_ACC_RANGE_2G;
 
     config[GYRO].cfg.gyr.filter_perf = BMI2_PERF_OPT_MODE;
-    config[GYRO].cfg.gyr.noise_perf = BMI2_GYR_RANGE_2000;
+    config[GYRO].cfg.gyr.noise_perf = BMI2_PERF_OPT_MODE;
     config[GYRO].cfg.gyr.bwp = BMI2_GYR_OSR2_MODE;
     config[GYRO].cfg.gyr.odr = BMI2_GYR_ODR_100HZ;
     config[GYRO].cfg.gyr.range = BMI2_GYR_RANGE_2000;
@@ -483,8 +483,8 @@ esp_err_t bmi2Read()
 {
     int8_t rslt;
     uint16_t status = 0;
-    struct bmm150_mag_data magnetometerData;
     struct bmi2_sens_data bmi270Data;
+    struct bmm150_mag_data magnetometerData;
     uint8_t auxData[8] = {0};
 
     bmi270Device.delay_us(50000, bmi270Device.intf_ptr);
@@ -494,22 +494,23 @@ esp_err_t bmi2Read()
     if ((status & BMI2_ACC_DRDY_INT_MASK) && (status & BMI2_GYR_DRDY_INT_MASK))
     {
         rslt = bmi2_get_sensor_data(&bmi270Data, &bmi270Device);
-        bmi2_error_codes_print_result(rslt);
-
-        if (rslt == BMI2_OK)
-        {
-            _motionSensor->setAccelerometerResult(bmi270Data.acc.x, bmi270Data.acc.y, bmi270Data.acc.z, lsbToMps(bmi270Data.acc.x), lsbToMps(bmi270Data.acc.y), lsbToMps(bmi270Data.acc.z));
-            _motionSensor->setGyroscopeResult(bmi270Data.gyr.x, bmi270Data.gyr.y, bmi270Data.gyr.z, lsbToDps(bmi270Data.gyr.x), lsbToDps(bmi270Data.gyr.y), lsbToDps(bmi270Data.gyr.z));
-        }
-
-        rslt = bmi2_read_aux_man_mode(BMM150_REG_DATA_X_LSB, auxData, 8, &bmi270Device);
+        uint64_t sensorTime = pdTICKS_TO_MS(xTaskGetTickCount());
         bmi2_error_codes_print_result(rslt);
         if (rslt == BMI2_OK)
         {
-            rslt = bmm150_aux_mag_data(auxData, &magnetometerData, &bmm150Device);
-            bmm150_error_codes_print_result(rslt);
+            _motionSensor->setAccelerometerResult(bmi270Data.acc.x, bmi270Data.acc.y, bmi270Data.acc.z,
+                                                  lsbToMps(bmi270Data.acc.x), lsbToMps(bmi270Data.acc.y), lsbToMps(bmi270Data.acc.z));
+            _motionSensor->gyroscopeDeadReckoning(lsbToDps(bmi270Data.gyr.x), lsbToDps(bmi270Data.gyr.y), lsbToDps(bmi270Data.gyr.z), sensorTime);
+
+            rslt = bmi2_read_aux_man_mode(BMM150_REG_DATA_X_LSB, auxData, 8, &bmi270Device);
+            bmi2_error_codes_print_result(rslt);
             if (rslt == BMI2_OK)
-                _motionSensor->setMagnetometerResult(magnetometerData.x, magnetometerData.y, magnetometerData.z);
+            {
+                rslt = bmm150_aux_mag_data(auxData, &magnetometerData, &bmm150Device);
+                bmm150_error_codes_print_result(rslt);
+                if (rslt == BMI2_OK)
+                    _motionSensor->setMagnetometerResult(magnetometerData.x, magnetometerData.y, magnetometerData.z);
+            }
         }
 
         return ESP_OK;

@@ -12,20 +12,15 @@ namespace Motion
     {
         return bmi2Calibrate();
     }
-    esp_err_t MotionFusionSensor::testMagnetometer()
-    {
-        return bmi2Init(this);
-    }
     esp_err_t MotionFusionSensor::read()
     {
         esp_err_t result = bmi2Read();
         if (ESP_OK == result)
         {
-            ESP_LOGD("MOTION", "Accelerometer Ms2 - X:%4.2f Y:%4.2f  Z:%4.2f", getAccelerometerMs2X(), getAccelerometerMs2Y(), getAccelerometerMs2Z());
-            ESP_LOGD("MOTION", "Gyroscope DpsX    - X:%4.2f Y:%4.2f  Z:%4.2f", getGyroscopeDpsX(), getGyroscopeDpsY(), getGyroscopeDpsZ());
-            ESP_LOGD("MOTION", "Gyroscope Raw    - X:%d Y:%d  Z:%d", getGyroscopeRawX(), getGyroscopeRawY(), getGyroscopeRawZ());
-            ESP_LOGD("MOTION", "Gyroscope Rotation    - X:%f Y:%f  Z:%f", getGyroscopeRotationX(), getGyroscopeRotationY(), getGyroscopeRotationZ());
-            ESP_LOGD("MOTION", "Magnetometer      - X:%d   Y:%d    Z:%d", getMagnetometerX(), getMagnetometerY(), getMagnetometerZ());
+            // ESP_LOGD("MOTION", "Accelerometer Ms2  - X:%4.2f Y:%4.2f  Z:%4.2f", getAccelerometerMs2X(), getAccelerometerMs2Y(), getAccelerometerMs2Z());
+            // ESP_LOGD("MOTION", "Gyroscope DpsX     - X:%4.2f Y:%4.2f  Z:%4.2f", getGyroscopeDpsX(), getGyroscopeDpsY(), getGyroscopeDpsZ());
+            ESP_LOGD("MOTION", "Gyroscope Rotation - X:%4.2f Y:%4.2f  Z:%4.2f", getGyroscopeRotationX(), getGyroscopeRotationY(), getGyroscopeRotationZ());
+            // ESP_LOGD("MOTION", "Magnetometer       - X:%d   Y:%d    Z:%d", getMagnetometerX(), getMagnetometerY(), getMagnetometerZ());
         }
         return result;
     }

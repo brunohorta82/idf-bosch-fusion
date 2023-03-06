@@ -9,24 +9,24 @@ namespace Motion
     class MotionFusionSensor
     {
     private:
-        float gyroXerror{0.0};
-        float gyroYerror{0.0};
-        float gyroZerror{0.0};
+        uint64_t sensorTimeMs{0};
         int16_t accelerometerRawX{0};
         int16_t accelerometerRawY{0};
         int16_t accelerometerRawZ{0};
         float accelerometerMpsX{0};
         float accelerometerMpsY{0};
         float accelerometerMpsZ{0};
-        int16_t gyroscopeRawX{0};
-        int16_t gyroscopeRawY{0};
-        int16_t gyroscopeRawZ{0};
+
+        float gyroXerror{0.0};
+        float gyroYerror{0.0};
+        float gyroZerror{0.0};
         float gyroscopeDpsX{0};
         float gyroscopeDpsY{0};
         float gyroscopeDpsZ{0};
         float gyroscopeRotationX{0};
         float gyroscopeRotationY{0};
         float gyroscopeRotationZ{0};
+
         int16_t magnetometerX{0};
         int16_t magnetometerY{0};
         int16_t magnetometerZ{0};
@@ -52,32 +52,27 @@ namespace Motion
             this->accelerometerMpsY = accelerometerMpsY;
             this->accelerometerMpsZ = accelerometerMpsZ;
         };
-        void setGyroscopeResult(int16_t gyroscopeRawX,
-                                int16_t gyroscopeRawY,
-                                int16_t gyroscopeRawZ,
-                                float gyroscopeDpsX,
-                                float gyroscopeDpsY,
-                                float gyroscopeDpsZ)
+        void gyroscopeDeadReckoning(float gyroscopeDpsX,
+                                    float gyroscopeDpsY,
+                                    float gyroscopeDpsZ,
+                                    uint64_t latestSensorTime)
         {
-            this->gyroscopeRawX = gyroscopeRawX;
-            this->gyroscopeRawY = gyroscopeRawY;
-            this->gyroscopeRawZ = gyroscopeRawZ;
+            double elapsedTime = (latestSensorTime - this->sensorTimeMs) / 1000.0;
             this->gyroscopeDpsX = gyroscopeDpsX;
             this->gyroscopeDpsY = gyroscopeDpsY;
             this->gyroscopeDpsZ = gyroscopeDpsZ;
-
+            this->sensorTimeMs = latestSensorTime;
             if (abs(gyroscopeDpsX) > gyroXerror)
             { // current angle (º) = last angle (º) + angular velocity (º/s) * time(s)
-
-                gyroscopeRotationX = gyroscopeRotationX + gyroscopeDpsX * 0.01;
+                gyroscopeRotationX += gyroscopeDpsX * elapsedTime;
             }
             if (abs(gyroscopeDpsY) > gyroYerror)
             {
-                gyroscopeRotationY = gyroscopeRotationY + gyroscopeDpsY * 0.01;
+                gyroscopeRotationY += gyroscopeDpsY * elapsedTime;
             }
             if (abs(gyroscopeDpsZ) > gyroZerror)
             {
-                gyroscopeRotationZ = gyroscopeRotationZ + gyroscopeDpsZ * 0.01;
+                gyroscopeRotationZ += gyroscopeDpsZ * elapsedTime;
             }
         };
         void setMagnetometerResult(int16_t magnetometerX,
@@ -88,31 +83,25 @@ namespace Motion
             this->magnetometerY = magnetometerY;
             this->magnetometerZ = magnetometerZ;
         }
+        constexpr uint64_t getLatestGyroscopeReckoning() { return sensorTimeMs; }
         constexpr float getAccelerometerMs2X() { return accelerometerMpsX; }
         constexpr float getAccelerometerMs2Y() { return accelerometerMpsY; }
         constexpr float getAccelerometerMs2Z() { return accelerometerMpsZ; }
+
         constexpr float getGyroscopeDpsX() { return gyroscopeDpsX; }
         constexpr float getGyroscopeDpsY() { return gyroscopeDpsY; }
         constexpr float getGyroscopeDpsZ() { return gyroscopeDpsZ; }
-
-        constexpr int16_t getGyroscopeRawX() { return gyroscopeRawX; }
-        constexpr int16_t getGyroscopeRawY() { return gyroscopeRawY; }
-        constexpr int16_t getGyroscopeRawZ() { return gyroscopeRawZ; }
-
         constexpr float getGyroscopeRotationX() { return gyroscopeRotationX; }
         constexpr float getGyroscopeRotationY() { return gyroscopeRotationY; }
         constexpr float getGyroscopeRotationZ() { return gyroscopeRotationZ; }
+
         constexpr int16_t getMagnetometerX() { return magnetometerX; }
         constexpr int16_t getMagnetometerY() { return magnetometerY; }
         constexpr int16_t getMagnetometerZ() { return magnetometerZ; }
-        shared_ptr<I2CMaster> getBus()
-        {
-            return this->i2cMasterBus;
-        }
+        shared_ptr<I2CMaster> getBus() { return this->i2cMasterBus; }
         esp_err_t init();
         esp_err_t calibrate();
         esp_err_t read();
-        esp_err_t testMagnetometer();
         void applyCalibrationValues(float gyroscopeDpsX,
                                     float gyroscopeDpsY,
                                     float gyroscopeDpsZ);
